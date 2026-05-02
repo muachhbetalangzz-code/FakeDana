@@ -1,0 +1,358 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  ScanLine, PlusCircle, ArrowUpRight, ArrowDownLeft, MoreHorizontal,
+  Wallet, CreditCard, Smartphone, Zap, Gamepad2, ShieldCheck, History,
+  Home, User, ChevronRight, Eye, EyeOff, QrCode, Bell, HelpCircle,
+  Shield, X, CheckCircle2, Ticket, Users, Settings, LogOut, Sparkles,
+  MessageSquare, Send, Loader2, Camera, Info, Image as ImageIcon,
+  Banknote, Landmark, Smartphone as PhoneIcon, Wallet2, Headset
+} from 'lucide-react';
+
+const apiKey = ""; 
+
+export default function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginKey, setLoginKey] = useState('');
+  // Nomor WA User yang benar
+  const [userPhone, setUserPhone] = useState('0882005257905');
+  const [showBalance, setShowBalance] = useState(true);
+  const [balance, setBalance] = useState(0);
+  const [activeTab, setActiveTab] = useState('home');
+  const [modal, setModal] = useState({ show: false, type: '', title: '', data: null });
+  const [profileImg, setProfileImg] = useState(null);
+  
+  // Nomor Admin yang mirip (0882005257900)
+  const adminPhone = "0882-0052-57900";
+
+  const [transactions, setTransactions] = useState([]);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanProgress, setScanProgress] = useState(0);
+
+  const handleLogin = (e) => {
+    e.preventDefault();
+    let initialBalance = 0;
+    if (loginKey.toLowerCase() === 'gratis') {
+      initialBalance = 850000;
+    } else if (loginKey.trim() !== '') {
+      initialBalance = 999.999.999.999.999.999;
+    }
+    
+    if (initialBalance > 0) {
+      setBalance(initialBalance);
+      setTransactions([{ 
+        id: Date.now(), 
+        title: 'Saldo Awal Akun', 
+        type: 'in', 
+        amount: initialBalance, 
+        date: 'Baru saja', 
+        icon: <ArrowDownLeft className="text-green-500" /> 
+      }]);
+      setIsLoggedIn(true);
+    }
+  };
+
+  const formatRupiah = (number) => {
+    return new Intl.NumberFormat('id-ID', { 
+      style: 'currency', 
+      currency: 'IDR', 
+      minimumFractionDigits: 0 
+    }).format(number);
+  };
+
+  const openModal = (type, title, data = null) => {
+    setModal({ show: true, type, title, data });
+  };
+
+  const closeModal = () => {
+    setModal({ show: false, type: '', title: '', data: null });
+    setIsScanning(false);
+  };
+
+  const startScanning = () => {
+    setIsScanning(true);
+    setScanProgress(0);
+    const interval = setInterval(() => {
+      setScanProgress(prev => {
+        if (prev >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            closeModal();
+            openModal('pay', 'Konfirmasi Pembayaran');
+          }, 500);
+          return 100;
+        }
+        return prev + 10;
+      });
+    }, 100);
+  };
+
+  const addTransaction = (title, amount, type = 'out') => {
+    if (type === 'out' && balance < amount) {
+      alert("Saldo tidak cukup untuk transaksi ini.");
+      return false;
+    }
+    
+    setBalance(prev => type === 'out' ? prev - amount : prev + amount);
+    const newTx = {
+      id: Date.now(),
+      title,
+      type,
+      amount,
+      date: 'Baru saja',
+      icon: type === 'out' ? <ArrowUpRight className="text-red-500" /> : <ArrowDownLeft className="text-green-500" />
+    };
+    setTransactions([newTx, ...transactions]);
+    return true;
+  };
+
+  const ActionModal = () => {
+    if (!modal.show) return null;
+    return (
+      <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/70 backdrop-blur-sm p-4">
+        <div className="bg-white w-full max-w-md rounded-t-[3rem] p-6 pb-12 animate-in slide-in-from-bottom duration-300">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-black text-gray-800 uppercase tracking-tighter">{modal.title}</h3>
+            <button onClick={closeModal} className="p-2 bg-gray-100 rounded-full text-gray-500"><X size={20} /></button>
+          </div>
+          
+          <div className="space-y-4">
+            {modal.type === 'scan' ? (
+              <div className="flex flex-col items-center py-6">
+                <div className="w-64 h-64 bg-black rounded-3xl relative overflow-hidden flex items-center justify-center border-4 border-[#108EE9]">
+                   <div className="absolute inset-x-0 h-1 bg-[#108EE9] shadow-[0_0_20px_#108EE9] animate-scan top-0"></div>
+                   <QrCode size={80} className="text-white/10" />
+                   <div className="absolute bottom-6 inset-x-10 h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#108EE9] transition-all" style={{ width: `${scanProgress}%` }}></div>
+                   </div>
+                </div>
+                <p className="mt-6 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Menunggu Respon Kamera...</p>
+              </div>
+            ) : modal.type === 'admin' ? (
+              <div className="flex flex-col items-center text-center space-y-5">
+                <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center text-[#108EE9]">
+                   <Headset size={48} />
+                </div>
+                <div>
+                  <h4 className="font-black text-gray-800 uppercase text-xl">Layanan LangZz Care</h4>
+                  <p className="text-xs text-gray-400 font-bold mt-1 uppercase tracking-widest">Nomor WhatsApp Admin Resmi:</p>
+                  <p className="text-2xl font-black text-[#108EE9] mt-2 tracking-widest">{adminPhone}</p>
+                </div>
+                <button 
+                   onClick={() => window.open(`https://wa.me/${adminPhone.replace(/-/g,'')}`)} 
+                   className="w-full py-5 bg-[#25D366] text-white font-black rounded-3xl flex items-center justify-center gap-3 shadow-xl active:scale-95 transition-transform"
+                >
+                  <MessageSquare size={24} />
+                  KIRIM PESAN WHATSAPP
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100">
+                  <label className="text-[10px] font-black text-gray-400 uppercase mb-2 block tracking-widest">Tujuan Pengiriman</label>
+                  <input type="text" placeholder="Masukkan Nomor/ID" className="bg-transparent w-full text-xl font-bold outline-none" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {[50000, 100000, 250000, 500000].map(amt => (
+                    <button key={amt} onClick={() => { if(addTransaction(modal.title, amt)) closeModal(); }} className="p-5 border-2 border-gray-100 rounded-3xl text-left hover:border-[#108EE9] active:bg-blue-50 transition-all">
+                      <p className="text-[9px] font-black text-gray-400 uppercase">Proses</p>
+                      <p className="font-black text-gray-800 text-lg">{formatRupiah(amt)}</p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  if (!isLoggedIn) {
+    return (
+      <div className="min-h-screen bg-[#108EE9] flex items-center justify-center p-6 font-sans">
+        <div className="w-full max-w-md bg-white rounded-[4rem] p-12 shadow-2xl">
+          <div className="flex flex-col items-center mb-10">
+            <div className="w-24 h-24 bg-blue-50 rounded-[2.5rem] flex items-center justify-center mb-6 shadow-inner">
+               <Shield size={48} className="text-[#108EE9]" />
+            </div>
+            <h1 className="text-4xl font-black text-gray-800 tracking-tighter uppercase">LangZz Wallet</h1>
+            <p className="text-[11px] font-black text-gray-300 tracking-[0.4em] uppercase mt-2">Verified V8.0.5</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-5 tracking-[0.2em]">Nomor WhatsApp</label>
+              <input 
+                type="text" value={userPhone} onChange={(e) => setUserPhone(e.target.value)}
+                className="w-full bg-gray-50 p-6 rounded-[2rem] text-center font-black text-xl outline-none border-4 border-transparent focus:border-blue-50 transition-all text-gray-700"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-5 tracking-[0.2em]">Akses Key</label>
+              <input 
+                type="text" value={loginKey} onChange={(e) => setLoginKey(e.target.value)}
+                className="w-full bg-gray-50 p-6 rounded-[2rem] text-center font-black text-3xl tracking-[0.4em] outline-none border-4 border-transparent focus:border-blue-50 transition-all uppercase text-[#108EE9]"
+                placeholder="••••"
+              />
+            </div>
+            <button className="w-full py-6 bg-[#108EE9] text-white font-black rounded-full shadow-[0_20px_40px_-10px_rgba(16,142,233,0.4)] active:scale-95 transition-transform uppercase text-sm tracking-widest">Masuk Aplikasi</button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F8F9FA] flex justify-center font-sans">
+      <div className="w-full max-w-md bg-white min-h-screen relative shadow-2xl overflow-hidden flex flex-col">
+        
+        <div className="flex-1 overflow-y-auto hide-scrollbar">
+          
+          {activeTab === 'home' && (
+            <div className="pb-32">
+              <div className="bg-[#108EE9] px-6 pt-10 pb-24 sticky top-0 z-0 rounded-b-[3.5rem]">
+                <div className="flex justify-between items-center text-white mb-10">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-14 h-14 bg-white/20 rounded-full flex items-center justify-center border-2 border-white/30 overflow-hidden shadow-2xl">
+                      {profileImg ? <img src={profileImg} className="w-full h-full object-cover" /> : <User size={28} />}
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-white/60 font-black uppercase tracking-widest mb-1">Dompet Aktif</p>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-3xl font-black tracking-tighter">{showBalance ? formatRupiah(balance) : 'Rp ••••••••••'}</span>
+                        <button onClick={() => setShowBalance(!showBalance)} className="opacity-50">
+                          {showBalance ? <Eye size={20} /> : <EyeOff size={20} />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex space-x-5">
+                    <button onClick={() => openModal('admin', 'Layanan Admin')} className="relative">
+                       <Headset size={28} />
+                       <span className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-[#108EE9]"></span>
+                    </button>
+                    <Bell size={28} />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-4 text-white text-center">
+                  <ActionIcon icon={<ScanLine size={32} />} label="Pindai" onClick={() => { startScanning(); openModal('scan', 'QRIS SCAN'); }} />
+                  <ActionIcon icon={<PlusCircle size={32} />} label="Isi Saldo" onClick={() => openModal('pay', 'Top Up')} />
+                  <ActionIcon icon={<ArrowUpRight size={32} />} label="Kirim" onClick={() => openModal('send', 'Kirim Uang')} />
+                  <ActionIcon icon={<ArrowDownLeft size={32} />} label="Minta" onClick={() => openModal('pay', 'Minta Saldo')} />
+                </div>
+              </div>
+
+              <div className="px-6 -mt-12 relative z-10">
+                <div className="bg-white rounded-[3rem] p-8 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.08)] border border-gray-50 grid grid-cols-4 gap-y-12">
+                  <ServiceItem icon={<Smartphone className="text-blue-500" />} label="Pulsa" onClick={() => openModal('pay', 'Beli Pulsa')} />
+                  <ServiceItem icon={<Zap className="text-yellow-500" />} label="Listrik" onClick={() => openModal('pay', 'Token PLN')} />
+                  <ServiceItem icon={<Gamepad2 className="text-purple-500" />} label="Games" onClick={() => openModal('pay', 'Top Up Games')} />
+                  <ServiceItem icon={<ShieldCheck className="text-green-500" />} label="BPJS" onClick={() => openModal('pay', 'BPJS')} />
+                  <ServiceItem icon={<Landmark className="text-red-500" />} label="Transfer" onClick={() => openModal('send', 'Bank')} />
+                  <ServiceItem icon={<Ticket className="text-orange-500" />} label="Voucher" onClick={() => openModal('pay', 'Voucher')} />
+                  <ServiceItem icon={<MessageSquare className="text-emerald-500" />} label="Admin" onClick={() => openModal('admin', 'Chat Admin')} />
+                  <ServiceItem icon={<MoreHorizontal className="text-gray-400" />} label="Semua" onClick={() => openModal('pay', 'Menu Lain')} />
+                </div>
+
+                <div className="mt-12 space-y-6">
+                  <h3 className="font-black text-gray-800 text-lg uppercase tracking-tighter px-2">Promo LangZz V8</h3>
+                  <div className="flex gap-5 overflow-x-auto hide-scrollbar pb-4">
+                    <div className="min-w-[320px] h-40 bg-gradient-to-br from-blue-600 to-indigo-800 rounded-[2.5rem] p-8 relative overflow-hidden text-white flex flex-col justify-end shadow-2xl">
+                       <h4 className="font-black text-2xl leading-tight z-10">Cashback 50% <br/> Top Up Pertama</h4>
+                       <p className="text-[10px] font-bold opacity-60 z-10 mt-2 uppercase tracking-widest">Hanya Minggu Ini</p>
+                       <Sparkles size={120} className="absolute -right-8 -top-8 opacity-10 rotate-12" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'wallet' && (
+            <div className="p-8 pt-12">
+              <h2 className="text-3xl font-black text-gray-800 tracking-tighter mb-8 uppercase">Dompet Saya</h2>
+              <div className="bg-gradient-to-br from-gray-900 to-blue-900 p-8 rounded-[3rem] text-white relative overflow-hidden shadow-2xl mb-10">
+                 <div className="flex justify-between items-start mb-16">
+                   <Shield size={32} className="text-blue-400" />
+                   <p className="text-[10px] font-black tracking-[0.6em] opacity-40 uppercase">LangZz Global Identity</p>
+                 </div>
+                 <p className="text-3xl font-bold tracking-[0.3em] mb-10">•••• •••• •••• {userPhone.slice(-4)}</p>
+                 <div className="flex justify-between items-end">
+                   <div>
+                     <p className="text-[9px] font-black opacity-30 uppercase tracking-widest mb-1">WhatsApp Verified</p>
+                     <p className="text-lg font-black uppercase">{userPhone}</p>
+                   </div>
+                   <div className="flex -space-x-4">
+                     <div className="w-11 h-11 bg-red-600 rounded-full border-2 border-white/20"></div>
+                     <div className="w-11 h-11 bg-yellow-500 rounded-full border-2 border-white/20"></div>
+                   </div>
+                 </div>
+                 <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/5 rounded-full blur-[80px]"></div>
+              </div>
+              
+              <div className="space-y-4">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em] ml-4">Akun Terverifikasi</p>
+                <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500 shadow-inner"><Landmark size={24} /></div>
+                    <div>
+                      <p className="text-sm font-black text-gray-800 uppercase tracking-tighter">Bank Rakyat Indonesia</p>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase">{userPhone}</p>
+                    </div>
+                  </div>
+                  <CheckCircle2 size={24} className="text-green-500" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'profile' && (
+            <div className="pb-32">
+              <div className="bg-white p-10 flex flex-col items-center text-center relative border-b border-gray-50">
+                <div className="relative group mb-6">
+                  <div className="w-36 h-36 bg-gray-50 rounded-full border-[6px] border-white shadow-2xl overflow-hidden flex items-center justify-center">
+                    {profileImg ? <img src={profileImg} className="w-full h-full object-cover" /> : <User size={80} className="text-gray-200 translate-y-4" />}
+                  </div>
+                  <label className="absolute bottom-1 right-1 bg-[#108EE9] p-3 rounded-full text-white cursor-pointer border-4 border-white shadow-xl active:scale-90 transition-transform">
+                    <Camera size={20} />
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                      const file = e.target.files[0];
+                      if(file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => setProfileImg(reader.result);
+                        reader.readAsDataURL(file);
+                      }
+                    }} />
+                  </label>
+                </div>
+                <h3 className="text-3xl font-black text-gray-800 uppercase tracking-tighter">Verified User</h3>
+                <p className="text-lg font-black text-[#108EE9] mt-1 tracking-widest">{userPhone}</p>
+              </div>
+
+              <div className="mt-8 px-6 space-y-4">
+                <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 flex items-center justify-between shadow-sm">
+                  <div className="flex items-center gap-5">
+                    <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-[#108EE9] shadow-inner"><ShieldCheck size={24} /></div>
+                    <div>
+                      <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Tingkat Akun</p>
+                      <p className="text-sm font-black text-gray-800 uppercase">LangZz Diamond Platinum</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-10 space-y-4">
+                   <button onClick={() => openModal('admin', 'Bantuan')} className="w-full p-6 bg-blue-50 text-[#108EE9] font-black text-xs tracking-[0.3em] rounded-[2rem] flex items-center justify-center gap-4 border border-blue-100 uppercase">
+                      <Headset size={24} />
+                      Chat Admin LangZz
+                   </button>
+                   <button onClick={() => setIsLoggedIn(false)} className="w-full p-6 bg-white border-2 border-red-50 text-red-500 font-black text-xs tracking-[0.3em] rounded-[2rem] uppercase">Keluar Akun</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="p-8 pt-12">
+              <h2 className="text-3xl font-black text-gray-800 tracking-tighter mb-8 uppercase">Riwayat</h2>
+              <div className="space-y-5">
+                {transactions.length > 0 ? transactions.map(tx =
